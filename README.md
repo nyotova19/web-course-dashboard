@@ -1,9 +1,5 @@
 # Web Course Dashboard
 
-![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?logo=php&logoColor=white)
-![MariaDB](https://img.shields.io/badge/MariaDB-11-003545?logo=mariadb&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-
 Система за управление на уеб курс с PHP REST API, single-page frontend и
 отделни функционалности за студенти и преподаватели.
 
