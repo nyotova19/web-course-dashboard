@@ -57,8 +57,6 @@ MARIA_ROOT_PASSWORD=rootpass
 JWT_SECRET=change_this_to_a_long_random_string
 ```
 
-> Преди production deployment сменете примерните пароли и `JWT_SECRET`.
-
 ## Тестови акаунти
 
 | Email | Password | Роля |
@@ -80,8 +78,6 @@ SQL файловете се изпълняват само при празен Ma
 docker compose down -v
 docker compose up -d --build
 ```
-
-> Внимание: тази операция изтрива всички локални данни в MariaDB.
 
 ---
 
