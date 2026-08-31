@@ -1,0 +1,58 @@
+# GitLab CI/CD Pipeline for w26-webdashboard
+
+image: docker:latest
+stages:
+  - build
+  - deploy
+variables:
+  DOCKER_DRIVER: overlay2
+  CI_CONFIG_HASH: 3adc537a3246bc767598feea990f064a6cde546c9f2d83508b0fb8354254f08e
+.before_script_common:
+  variables: {}
+  before_script:
+    - apk add --no-cache curl bash
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - |-
+      if [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then
+        echo "Using docker-compose.main.yaml"
+        cp -rf .secure_files/docker-compose.main.yaml docker-compose.yml
+        ls -la
+      elif [ "$CI_COMMIT_BRANCH" = "dev" ]; then
+        echo "Using docker-compose.dev.yaml"
+        cp -rf .secure_files/docker-compose.dev.yaml docker-compose.yml
+      else
+        echo "Unsupported branch: $CI_COMMIT_BRANCH"
+        exit 1
+      fi
+build_web-dashboard:
+  extends: .before_script_common
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - when: never
+  tags:
+    - HSS
+  script:
+    - docker compose -f docker-compose.yml build web-dashboard --no-cache
+    - docker tag w26-webdashboard-ih9tqg-web-dashboard w26-webdashboard-ih9tqg-web-dashboard:$CI_COMMIT_BRANCH
+    - docker save w26-webdashboard-ih9tqg-web-dashboard:$CI_COMMIT_BRANCH -o w26-webdashboard-ih9tqg-web-dashboard.tar
+  artifacts:
+    paths:
+      - w26-webdashboard-ih9tqg-web-dashboard.tar
+deploy_web-dashboard:
+  extends: .before_script_common
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "dev"
+    - when: never
+  tags:
+    - HSS
+  needs:
+    - build_web-dashboard
+  script:
+    - docker-compose rm -s -f web-dashboard || true
+    - docker rmi w26-webdashboard-ih9tqg-web-dashboard:$CI_COMMIT_BRANCH || true
+    - docker load -i w26-webdashboard-ih9tqg-web-dashboard.tar
+    - docker-compose up -d web-dashboard

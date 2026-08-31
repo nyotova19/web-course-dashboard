@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web Technologies Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       LOGIN SCREEN
+  ═══════════════════════════════════════ -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-dot">W</div>
+        <div class="login-logo-text">
+          Web Technologies
+          <small>Course Management</small>
+        </div>
+      </div>
+      <form id="login-form">
+        <label for="login-email">Имейл адрес</label>
+        <input type="email" id="login-email" placeholder="you@uni.bg" required autocomplete="username">
+        <label for="login-password">Парола</label>
+        <div class="pw-wrap">
+          <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+          <button type="button" class="pw-toggle" aria-label="Покажи паролата">👁️</button>
+        </div>
+        <button type="submit" class="btn btn-primary">Влез в системата</button>
+        <button type="button" class="btn btn-primary" id="register-btn">Регистрация</button>
+        <div id="login-error" class="error-msg hidden"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       DASHBOARD
+  ═══════════════════════════════════════ -->
+  <div id="dashboard" class="hidden">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-logo">
+        <div class="topbar-dot">W</div>
+        Web Technologies
+      </div>
+      <div class="topbar-user">
+        <div class="topbar-avatar" id="user-avatar"></div>
+        <span id="user-name"></span>
+        <span class="topbar-sep">|</span>
+        <span id="user-group" style="color:rgba(255,255,255,.7)"></span>
+        <button class="btn-logout" id="logout-btn">Изход</button>
+      </div>
+    </div>
+
+    <!-- Tabs bar -->
+    <div class="tabs-bar">
+      <div class="tab active" data-tab="0">Моите реферати</div>
+      <div class="tab" data-tab="1">Всички реферати</div>
+      <div class="tab" data-tab="2">Представяне на реферат</div>
+      <div class="tab" data-tab="3">Представяне на проект</div>
+      <div class="tab" data-tab="4">Запазени дати</div>
+      <div class="tab" data-tab="5">Домашни &amp; Срокове</div>
+    </div>
+
+    <!-- ─── Tab 0: My Reports ─── -->
+    <div id="tab-0" class="tab-panel active">
+      <div class="toolbar">
+        <div class="toolbar-title">Моите реферати</div>
+        <div class="toolbar-actions">
+          <button class="btn btn-ghost btn-sm" id="t0-suggest-btn">+ Предложи тема</button>
+          <button class="btn btn-primary btn-sm" id="t0-add-btn">+ Нов реферат</button>
+        </div>
+      </div>
+      <div id="t0-tags" class="tag-filter-bar"></div>
+      <div id="t0-content"><div class="loading">Зареждане...</div></div>
+    </div>
+
+    <!-- ─── Tab 1: All Reports ─── -->
+    <div id="tab-1" class="tab-panel">
+      <div class="toolbar">
+        <div class="toolbar-title">Всички реферати</div>
+        <div class="toolbar-actions">
+          <button class="btn btn-ghost btn-sm" id="t1-suggest-btn">+ Предложи тема</button>
+        </div>
+      </div>
+      <div id="t1-tags" class="tag-filter-bar"></div>
+      <div id="t1-content"><div class="loading">Зареждане...</div></div>
+    </div>
+
+    <!-- ─── Tab 2: Представяне на реферат (book slots) ─── -->
+    <div id="tab-2" class="tab-panel">
+      <div class="toolbar">
+        <div class="toolbar-title">Представяне на реферат</div>
+        <div class="toolbar-actions"></div>
+      </div>
+      <div id="t2-sessions"><div class="loading">Зареждане...</div></div>
+    </div>
+
+    <!-- ─── Tab 3: Представяне на проект (static schedule) ─── -->
+    <div id="tab-3" class="tab-panel">
+      <div class="toolbar">
+        <div class="toolbar-title">Представяне на проект</div>
+        <div class="toolbar-actions"></div>
+      </div>
+      <div id="t3-sessions"><div class="loading">Зареждане...</div></div>
+    </div>
+
+    <!-- ─── Tab 4: Запазени дати (my bookings & results) ─── -->
+    <div id="tab-4" class="tab-panel">
+      <div class="toolbar">
+        <div class="toolbar-title">Запазени дати</div>
+      </div>
+      <div id="t4-mine"><div class="loading">Зареждане...</div></div>
+    </div>
+
+    <!-- ─── Tab 5: Homework ─── -->
+    <div id="tab-5" class="tab-panel">
+      <div class="toolbar">
+        <div class="toolbar-title">Домашни &amp; Срокове</div>
+      </div>
+      <div id="t5-tags" class="tag-filter-bar"></div>
+      <div id="t5-content"><div class="loading">Зареждане...</div></div>
+    </div>
+
+  </div><!-- /#dashboard -->
+
+  <!-- ═══════════════════════════════════════
+       SHARED MODAL
+  ═══════════════════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title"></h2>
+        <button class="modal-close-btn" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-content" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

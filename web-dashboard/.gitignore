@@ -1,0 +1,9 @@
+# PHP dependencies
+backend/vendor/
+
+# Environment files
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
