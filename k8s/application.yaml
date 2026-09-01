@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-course-dashboard
+  namespace: web-course
+  labels:
+    app.kubernetes.io/name: web-course-dashboard
+    app.kubernetes.io/component: application
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web-course-dashboard
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: web-course-dashboard
+        app.kubernetes.io/component: application
+    spec:
+      containers:
+        - name: application
+          image: web-course-dashboard:k8s
+          imagePullPolicy: Never
+
+          ports:
+            - name: http
+              containerPort: 80
+
+          envFrom:
+            - configMapRef:
+                name: web-course-config
+
+          env:
+            - name: MARIADB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: web-course-secrets
+                  key: MARIADB_USER
+
+            - name: MARIADB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: web-course-secrets
+                  key: MARIADB_PASSWORD
+
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: web-course-secrets
+                  key: JWT_SECRET
+
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 12
+
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-course-dashboard
+  namespace: web-course
+  labels:
+    app.kubernetes.io/name: web-course-dashboard
+    app.kubernetes.io/component: application
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: web-course-dashboard
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

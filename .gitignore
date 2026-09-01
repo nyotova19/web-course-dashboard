@@ -13,3 +13,6 @@ backend/supervisord.pid
 
 # PHPUnit cache
 backend/.phpunit.cache/
+
+# Local Kubernetes secrets
+k8s/secret.yaml
