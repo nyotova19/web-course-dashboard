@@ -1,285 +1,275 @@
 # Web Course Dashboard
 
-Система за управление на уеб курс с PHP REST API, single-page frontend и
-отделни функционалности за студенти и преподаватели.
+Web приложение за управление на университетски курс с роли за студенти и
+преподаватели. Проектът демонстрира цялостен автоматизиран DevOps процес:
+тестване, security scanning, изграждане на Docker image и deployment в
+Kubernetes.
 
-## Стек
+## Технологии
 
-- **PHP 8.3** + custom Router (без framework)
-- **MariaDB 11** чрез PDO и `pdo_mysql`
-- **HTML5, CSS3 и JavaScript**
-- **JWT** автентикация (`firebase/php-jwt`)
-- **Nginx** reverse proxy
-- **Docker + Docker Compose**
-- **GitLab CI/CD**
+- PHP 8.3 и custom REST API
+- MariaDB 11 и PDO prepared statements
+- HTML, CSS и JavaScript SPA
+- JWT authentication
+- Nginx и PHP-FPM
+- PHPUnit
+- Docker и Docker Compose
+- GitHub Actions
+- Semgrep SAST
+- Trivy container scanning
+- Kubernetes, Kind и Kustomize
 
----
+## Архитектура
 
-## Бързо стартиране
+```mermaid
+flowchart LR
+    U[Потребител] --> S[Application Service]
+    S --> P1[Application Pod 1]
+    S --> P2[Application Pod 2]
 
-Необходими са Docker, Docker Compose v2 и свободни портове `8080` и `3306`.
-От основната директория на проекта изпълнете:
+    P1 --> DB[MariaDB Service]
+    P2 --> DB
+    DB --> ST[MariaDB StatefulSet]
+    ST --> PVC[Persistent Volume]
 
-```bash
+    CM[ConfigMap] --> P1
+    CM --> P2
+    SEC[Secret] --> P1
+    SEC --> P2
+    SEC --> ST
+```
+
+Всеки application container съдържа:
+
+- Nginx;
+- PHP-FPM;
+- PHP REST API;
+- frontend файловете.
+
+MariaDB работи като StatefulSet с persistent storage.
+
+## CI/CD pipeline
+
+Pipeline-ът се намира в `.github/workflows/ci.yml`.
+
+```mermaid
+flowchart LR
+    A[Git push / Pull Request] --> B[Validate PHP]
+    A --> C[PHPUnit]
+    A --> D[Semgrep SAST]
+
+    B --> E[Docker build]
+    C --> E
+    D --> E
+
+    E --> F[Trivy scan]
+    F --> G[Kind cluster]
+    G --> H[Kubernetes deploy]
+    H --> I[Rolling rollout]
+    I --> J[Health smoke test]
+```
+
+| Етап | Предназначение |
+|------|----------------|
+| Composer validation | Проверява PHP dependency конфигурацията |
+| PHP syntax check | Открива синтактични грешки |
+| Composer audit | Проверява dependencies за известни уязвимости |
+| PHPUnit | Изпълнява автоматизираните unit тестове |
+| Semgrep | Извършва SAST анализ на PHP кода |
+| Docker build | Създава application image |
+| Trivy | Блокира HIGH и CRITICAL container уязвимости |
+| Kind deployment | Deploy-ва приложението във временен Kubernetes cluster |
+| Smoke test | Проверява `/api/health` след deployment |
+
+## Branching стратегия
+
+- `main` — стабилна версия;
+- `develop` — интеграционен клон;
+- `feature/*` — разработка на нови функционалности;
+- `fix/*` — поправки.
+
+Промените се разработват във feature branch и се добавят в `develop` чрез
+Pull Request след успешен pipeline.
+
+## Стартиране с Docker Compose
+
+### Изисквания
+
+- Docker Desktop;
+- Docker Compose v2;
+- свободни портове `8080` и `3306`.
+
+### Конфигурация
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Промени поне `JWT_SECRET` в `.env` с дълга случайна стойност.
+
+### Стартиране
+
+```powershell
 docker compose up -d --build
+docker compose ps
 ```
 
 | URL | Описание |
 |-----|----------|
-| [http://localhost:8080](http://localhost:8080) | Web Course Dashboard |
-| [http://localhost:8080/api/health](http://localhost:8080/api/health) | Проверка на REST API |
+| http://localhost:8080 | Web Course Dashboard |
+| http://localhost:8080/api/health | REST API health endpoint |
 | `localhost:3306` | MariaDB |
 
-Полезни команди:
+Спиране:
 
-```bash
-# Състояние на контейнерите
-docker compose ps
-
-# Логове
-docker compose logs -f
-
-# Спиране на проекта
+```powershell
 docker compose down
-```
-
-## Конфигурация
-
-Docker Compose използва стойности по подразбиране за локална разработка. За
-собствени настройки създайте `.env` файл в основната директория:
-
-```env
-APP_ENV=development
-MARIA_DB=webcourse
-MARIA_USER=webuser
-MARIA_PASSWORD=webpass
-MARIA_ROOT_PASSWORD=rootpass
-JWT_SECRET=change_this_to_a_long_random_string
 ```
 
 ## Тестови акаунти
 
-| Email | Password | Роля |
-|-------|----------|------|
-| `student@uni.bg` | `password` | Студент |
-| `teacher@uni.bg` | `password` | Преподавател |
+| Email | Парола | Роля |
+|-------|--------|------|
+| `student@uni.bg` | `student123` | Студент |
+| `teacher@uni.bg` | `teacher123` | Преподавател |
 
-## Инициализация на MariaDB
+Тестовите данни се зареждат от `mariadb-init/02-seed.sql` при първото
+стартиране върху празен database volume.
 
-При първото стартиране MariaDB изпълнява автоматично:
+## Автоматизирани тестове
 
-1. `mariadb-init/01-schema.sql` — създава таблиците и индексите;
-2. `mariadb-init/02-seed.sql` — добавя тестовите потребители и примерните данни.
-
-SQL файловете се изпълняват само при празен MariaDB volume. За пълно нулиране
-на локалната база данни използвайте:
-
-```bash
-docker compose down -v
-docker compose up -d --build
+```powershell
+docker compose exec php composer test
+docker compose exec php composer audit
 ```
 
----
+Очакван резултат:
+
+```text
+OK (4 tests, 10 assertions)
+No security vulnerability advisories found.
+```
+
+## Локално стартиране в Kubernetes
+
+### Изисквания
+
+- Docker Desktop;
+- активиран Kubernetes;
+- `kubectl`.
+
+Изгради application image:
+
+```powershell
+docker build -t web-course-dashboard:k8s ./backend
+```
+
+Създай локален Secret:
+
+```powershell
+Copy-Item k8s\secret.example.yaml k8s\secret.yaml
+```
+
+Замени всички `CHANGE_ME` стойности в `k8s/secret.yaml`. Реалният файл е
+включен в `.gitignore` и не трябва да се commit-ва.
+
+Deploy:
+
+```powershell
+kubectl apply -f k8s\namespace.yaml
+kubectl apply -f k8s\secret.yaml
+kubectl apply -k .
+
+kubectl -n web-course rollout status statefulset/mariadb
+kubectl -n web-course rollout status deployment/web-course-dashboard
+kubectl -n web-course get pods,service,pvc
+```
+
+Достъп:
+
+```powershell
+kubectl -n web-course port-forward service/web-course-dashboard 8081:80
+```
+
+| URL | Описание |
+|-----|----------|
+| http://localhost:8081 | Kubernetes deployment |
+| http://localhost:8081/api/health | Kubernetes health endpoint |
+
+## Horizontal scaling
+
+Deployment manifest-ът декларира две application реплики.
+
+Временно мащабиране до три:
+
+```powershell
+kubectl -n web-course scale deployment/web-course-dashboard --replicas=3
+kubectl -n web-course rollout status deployment/web-course-dashboard
+kubectl -n web-course get pods
+```
+
+Връщане до две:
+
+```powershell
+kubectl -n web-course scale deployment/web-course-dashboard --replicas=2
+```
+
+## Rolling update и rollback
+
+```powershell
+kubectl -n web-course rollout status deployment/web-course-dashboard
+kubectl -n web-course rollout history deployment/web-course-dashboard
+kubectl -n web-course rollout undo deployment/web-course-dashboard
+```
 
 ## Структура на проекта
 
+```text
+web-course-dashboard/
+├── .github/workflows/ci.yml     # GitHub Actions pipeline
+├── backend/                     # PHP API, Dockerfile и PHPUnit тестове
+├── frontend/                    # HTML, CSS и JavaScript SPA
+├── docker/                      # Nginx конфигурация за Docker Compose
+├── k8s/                         # Kubernetes manifests
+├── mariadb-init/                # Database schema и seed данни
+├── docs/                        # Подробна проектна документация
+├── docker-compose.yml
+├── kustomization.yaml
+└── README.md
 ```
-web-dashboard/
-├── frontend/                        ← SPA потребителски интерфейс
-│   ├── index.html
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       └── app.js
-├── backend/
-│   ├── Dockerfile
-│   ├── composer.json
-│   ├── public/
-│   │   └── index.php                ← API entry point
-│   └── src/
-│       ├── Config/
-│       │   └── Database.php         ← MariaDB връзка чрез PDO
-│       ├── Controllers/
-│       │   ├── BaseController.php
-│       │   ├── AuthController.php
-│       │   ├── DashboardController.php
-│       │   ├── TopicsController.php
-│       │   ├── ReportsController.php
-│       │   ├── HomeworkController.php
-│       │   └── PresentationsController.php
-│       ├── Middleware/
-│       │   └── AuthMiddleware.php   ← JWT
-│       └── Routes/
-│           └── Router.php
-├── docker/
-│   └── nginx.conf
-├── mariadb-init/
-│   ├── 01-schema.sql                ← структура на базата данни
-│   └── 02-seed.sql                  ← начални данни
-├── .env.example
-├── .gitignore
-├── .gitlab-ci.yml
-└── docker-compose.yml
-```
-
----
-
-## Потребителски интерфейс
-
-Single-page приложение с 6 таба:
-
-| Таб | Описание |
-|-----|----------|
-| **Моите реферати** | Списък на собствените реферати. Добавяне, редакция, изтриване. Предлагане на тема (без срок). Мулти-селект филтриране по хеш-тагове. |
-| **Всички реферати** | Всички реферати в курса. Групиране по хеш-таг. Филтриране по таг (server-side). |
-| **Представяне на реферат** | Сесии с налични слотове. Резервиране на слот с тема. |
-| **Представяне на проект** | Свободни слотове за представяне. Записване с тема. |
-| **Запазени дати** | Собствените резервации и резултати от преподавателя. Отказване на резервация. |
-| **Домашни & Срокове** | Домашни задачи групирани по срок (просрочени / тази седмица / предстоящи / предадени). Предаване на домашно. Мулти-селект филтриране по хеш-тагове. Кликване на таг навигира към **Всички реферати** с активен филтър. |
-
----
-
-## API endpoints
-
-### Auth
-
-| Метод | URL | Описание | Auth |
-|-------|-----|----------|------|
-| POST | /api/auth/register | Регистрация | — |
-| POST | /api/auth/login | Вход | — |
-| GET  | /api/auth/me | Текущ потребител | ✅ |
-| GET  | /api/users?role=student | Списък студенти / потребители | ✅ |
-
-Примерен отговор при успешен вход:
-
-```json
-{
-  "token": "eyJ...",
-  "user": { "_id": "...", "name": "...", "role": "student" }
-}
-```
-Защитените заявки трябва да съдържат:
-
-```http
-Authorization: Bearer <token>
-```
-
----
-
-### Реферати
-
-| Метод | URL | Роля |
-|-------|-----|------|
-| GET    | /api/reports | student (own reports by default) / teacher (all reports) |
-| GET    | /api/reports?scope=all | student (all reports) / teacher (all reports) |
-| GET    | /api/reports/tags | всички хеш-тагове |
-| GET    | /api/reports/{id} | student (own report) / teacher |
-| POST   | /api/reports | student / teacher |
-| PUT    | /api/reports/{id} | student (own report) / teacher |
-| DELETE | /api/reports/{id} | student (own report) / teacher |
-
-Поддържани query параметри: `?tag=#css`, `?scope=all`, `?status=pending`,
-`?search=express`, `?page=1&limit=20`.
-
-Примерно тяло на `POST` заявка:
-
-```json
-{
-  "title": "Node.js въведение",
-  "keywords": ["#node", "#backend"],
-  "resources": ["https://nodejs.org/docs"],
-  "deadline": "2025-06-04",
-  "notes": "Допълнителни бележки"
-}
-```
-
-За предложена тема (без срок):
-
-```json
-{
-  "title": "Предложена тема",
-  "keywords": ["#idea"],
-  "status": "suggested"
-}
-```
-
-Статуси: `pending` | `in_progress` | `submitted` | `graded` | `suggested`
-
----
-
-### Домашни
-
-| Метод | URL | Роля |
-|-------|-----|------|
-| GET    | /api/homework | student + teacher |
-| POST   | /api/homework | teacher |
-| PUT    | /api/homework/{id} | teacher |
-| DELETE | /api/homework/{id} | teacher |
-| POST   | /api/homework/{id}/submit | student |
-| GET    | /api/homework/{id}/submissions | teacher |
-| PUT    | /api/homework/{id}/grade/{userId} | teacher |
-
-Примерно тяло при предаване на домашна работа:
-
-```json
-{
-  "content": "Описание на решението",
-  "link": "https://github.com/ivan/hw8"
-}
-```
-
----
-
-### Презентации
-
-| Метод | URL | Роля |
-|-------|-----|------|
-| GET    | /api/presentations/sessions | всички |
-| POST   | /api/presentations/sessions | teacher |
-| POST   | /api/presentations/sessions/{id}/slots | teacher |
-| DELETE | /api/presentations/sessions/{id} | teacher |
-| GET    | /api/presentations/mine | student |
-| POST   | /api/presentations/slots/{slotId}/book | student |
-| DELETE | /api/presentations/slots/{slotId}/cancel | student |
-| DELETE | /api/presentations/slots/{slotId} | teacher |
-| PUT    | /api/presentations/slots/{slotId}/status | teacher |
-
-Примерно тяло при резервиране на слот:
-
-```json
-{ "topic": "REST API дизайн" }
-```
-
-Статуси на слот: `free` | `booked` | `done` | `absent`
-
----
-
-### Теми
-
-| Метод | URL | Роля |
-|-------|-----|------|
-| GET    | /api/topics | всички |
-| GET    | /api/topics/{id} | всички |
-| POST   | /api/topics | teacher |
-| PUT    | /api/topics/{id} | teacher |
-| DELETE | /api/topics/{id} | teacher |
-
----
-
-## GitLab CI/CD
-
-Pipeline с 2 стейджа:
-
-1. **build** — изгражда Docker image и го запазва като artifact;
-2. **deploy** — зарежда image-а и стартира услугата с Docker Compose.
-
-Pipeline-ът се изпълнява за клоновете `main` и `dev`. Използва защитен Compose
-файл за съответната среда: `docker-compose.main.yaml` или
-`docker-compose.dev.yaml`.
 
 ## Сигурност
 
-- паролите се съхраняват като bcrypt hash;
-- защитените endpoints използват JWT;
-- правата се контролират според ролята на потребителя;
-- SQL заявките използват PDO prepared statements.
+- bcrypt password hashing;
+- JWT authentication;
+- role-based authorization;
+- PDO prepared statements;
+- Composer dependency audit;
+- Semgrep SAST;
+- Trivy Docker image scanning;
+- Kubernetes Secrets;
+- readiness, liveness и startup probes;
+- container resource requests и limits;
+- `.env` и `k8s/secret.yaml` са изключени от Git.
+
+## Покрити DevOps теми
+
+Проектът покрива повече от изискваните седем теми:
+
+1. Software Development Lifecycle;
+2. source control;
+3. branching strategies;
+4. build pipelines;
+5. Continuous Integration;
+6. Continuous Delivery;
+7. automated testing;
+8. security scanning;
+9. Docker;
+10. Kubernetes;
+11. Infrastructure as Code;
+12. databases и persistent storage.
+
+## Допълнителна документация
+
+- [API документация](docs/API.md)
+- [DevOps архитектура и pipeline](docs/DEVOPS.md)
