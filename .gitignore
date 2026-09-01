@@ -10,3 +10,6 @@ Thumbs.db
 
 # Runtime process files
 backend/supervisord.pid
+
+# PHPUnit cache
+backend/.phpunit.cache/
