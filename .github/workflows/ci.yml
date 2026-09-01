@@ -75,12 +75,26 @@ jobs:
         working-directory: backend
         run: composer test
 
+  sast:
+    name: SAST with Semgrep
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Scan PHP source code
+        run: semgrep scan --config auto --error backend/src backend/public
+
   build:
-    name: Build Docker image
+    name: Build and scan Docker image
     runs-on: ubuntu-latest
     needs:
       - validate
       - test
+      - sast
 
     steps:
       - name: Checkout repository
