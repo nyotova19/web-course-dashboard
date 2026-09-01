@@ -89,7 +89,7 @@ jobs:
         run: semgrep scan --config auto --error backend/src backend/public
 
   build:
-    name: Build Docker image
+    name: Build and scan Docker image
     runs-on: ubuntu-latest
     needs:
       - validate
