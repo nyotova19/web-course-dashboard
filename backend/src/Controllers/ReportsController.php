@@ -43,19 +43,27 @@ class ReportsController extends BaseController
 
         $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
 
-        // Pagination
+                // Pagination
         $page  = max(1, (int) ($_GET['page'] ?? 1));
-        $limit = min(50, (int) ($_GET['limit'] ?? 20));
+        $limit = max(1, min(50, (int) ($_GET['limit'] ?? 20)));
         $skip  = ($page - 1) * $limit;
-        $countStmt = $this->db()->prepare('SELECT COUNT(*) FROM reports' . $whereSql); // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable
+
+        $countStmt = $this->db()->prepare('SELECT COUNT(*) FROM reports' . $whereSql);
         $countStmt->execute($args);
         $total = (int) $countStmt->fetchColumn();
-
-        // LIMIT/OFFSET are integers we control — safe to interpolate.
         $sql = 'SELECT * FROM reports' . $whereSql
-             . ' ORDER BY deadline ASC LIMIT ' . (int) $limit . ' OFFSET ' . (int) $skip;
+             . ' ORDER BY deadline ASC LIMIT ? OFFSET ?';
+
         $stmt = $this->db()->prepare($sql); // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable
-        $stmt->execute($args);
+
+        $position = 1;
+        foreach ($args as $arg) {
+            $stmt->bindValue($position++, $arg);
+        }
+
+        $stmt->bindValue($position++, $limit, \PDO::PARAM_INT);
+        $stmt->bindValue($position, $skip, \PDO::PARAM_INT);
+        $stmt->execute();
 
         $this->json([
             'data'       => $this->shapeMany($stmt->fetchAll(), self::JSON_COLS),
