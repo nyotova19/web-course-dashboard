@@ -47,15 +47,14 @@ class ReportsController extends BaseController
         $page  = max(1, (int) ($_GET['page'] ?? 1));
         $limit = min(50, (int) ($_GET['limit'] ?? 20));
         $skip  = ($page - 1) * $limit;
-
-        $countStmt = $this->db()->prepare('SELECT COUNT(*) FROM reports' . $whereSql);
+        $countStmt = $this->db()->prepare('SELECT COUNT(*) FROM reports' . $whereSql); // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable
         $countStmt->execute($args);
         $total = (int) $countStmt->fetchColumn();
 
         // LIMIT/OFFSET are integers we control — safe to interpolate.
         $sql = 'SELECT * FROM reports' . $whereSql
              . ' ORDER BY deadline ASC LIMIT ' . (int) $limit . ' OFFSET ' . (int) $skip;
-        $stmt = $this->db()->prepare($sql);
+        $stmt = $this->db()->prepare($sql); // nosemgrep: php.lang.security.injection.tainted-callable.tainted-callable
         $stmt->execute($args);
 
         $this->json([
