@@ -7,3 +7,12 @@ backend/vendor/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Runtime process files
+backend/supervisord.pid
+
+# PHPUnit cache
+backend/.phpunit.cache/
+
+# Local Kubernetes secrets
+k8s/secret.yaml

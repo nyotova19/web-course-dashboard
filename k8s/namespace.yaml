@@ -1,0 +1,6 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: web-course
+  labels:
+    app.kubernetes.io/name: web-course-dashboard
