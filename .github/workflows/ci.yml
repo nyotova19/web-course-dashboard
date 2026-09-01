@@ -95,7 +95,80 @@ jobs:
       - validate
       - test
       - sast
+  kubernetes_deploy:
+    name: Deploy to Kubernetes test cluster
+    runs-on: ubuntu-latest
+    needs:
+      - build
 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create Kind Kubernetes cluster
+        uses: helm/kind-action@v1.14.0
+        with:
+          cluster_name: web-course-ci
+          wait: 120s
+
+      - name: Build application image
+        run: docker build --tag web-course-dashboard:k8s ./backend
+
+      - name: Load application image into Kind
+        run: kind load docker-image web-course-dashboard:k8s --name web-course-ci
+
+      - name: Validate Kubernetes manifests
+        run: kubectl kustomize . | kubectl apply --dry-run=client -f -
+
+      - name: Create ephemeral Kubernetes secrets
+        shell: bash
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+
+          DB_PASSWORD="$(openssl rand -hex 24)"
+          ROOT_PASSWORD="$(openssl rand -hex 24)"
+          JWT_SECRET="$(openssl rand -hex 32)"
+
+          kubectl -n web-course create secret generic web-course-secrets \
+            --from-literal=MARIADB_USER=webuser \
+            --from-literal=MARIADB_PASSWORD="$DB_PASSWORD" \
+            --from-literal=MARIADB_ROOT_PASSWORD="$ROOT_PASSWORD" \
+            --from-literal=JWT_SECRET="$JWT_SECRET"
+
+      - name: Deploy to Kubernetes
+        run: kubectl apply -k .
+
+      - name: Wait for MariaDB
+        run: kubectl -n web-course rollout status statefulset/mariadb --timeout=300s
+
+      - name: Wait for application rolling deployment
+        run: kubectl -n web-course rollout status deployment/web-course-dashboard --timeout=300s
+
+      - name: Show Kubernetes resources
+        run: kubectl -n web-course get pods,service,pvc
+
+      - name: Smoke test health endpoint
+        shell: bash
+        run: |
+          kubectl -n web-course port-forward service/web-course-dashboard 8081:80 \
+            > /tmp/port-forward.log 2>&1 &
+
+          PORT_FORWARD_PID=$!
+          trap 'kill "$PORT_FORWARD_PID" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8081/api/health \
+              | grep --quiet '"status":"ok"'; then
+              echo "Kubernetes smoke test passed."
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          cat /tmp/port-forward.log
+          echo "Kubernetes smoke test failed."
+          exit 1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
