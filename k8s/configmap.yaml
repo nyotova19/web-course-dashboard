@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-course-config
+  namespace: web-course
+data:
+  APP_ENV: production
+  BASE_PATH: ""
+  MARIA_DB: webcourse
+  MARIADB_HOST: mariadb
+  MARIADB_PORT: "3306"
+  MARIADB_DATABASE: webcourse
