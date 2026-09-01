@@ -11,11 +11,13 @@ RUN apk add --no-cache \
     curl \
     git \
     unzip \
+    libxml2-dev \
+    oniguruma-dev \
     nginx \
     supervisor
 
 # Install PDO MySQL extension (MariaDB)
-RUN docker-php-ext-install pdo pdo_mysql
+RUN docker-php-ext-install pdo pdo_mysql mbstring dom xml xmlwriter
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

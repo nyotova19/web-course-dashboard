@@ -13,6 +13,9 @@
             "App\\": "src/"
         }
     },
+    "scripts": {
+    "test": "phpunit --configuration phpunit.xml"
+    },
     "config": {
         "optimize-autoloader": true,
         "policy": {
@@ -20,5 +23,8 @@
                 "block": false
             }
         }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.5"
     }
 }
