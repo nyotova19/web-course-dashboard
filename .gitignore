@@ -7,3 +7,6 @@ backend/vendor/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Runtime process files
+backend/supervisord.pid
