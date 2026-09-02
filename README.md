@@ -1,123 +1,124 @@
 # Web Course Dashboard
 
-Web приложение за управление на университетски курс с роли за студенти и
-преподаватели. Проектът демонстрира цялостен автоматизиран DevOps процес:
-тестване, security scanning, изграждане на Docker image и deployment в
-Kubernetes.
+Курсов проект за автоматизиран software delivery процес. Приложението е
+табло за университетски курс с две роли — студент и преподавател.
 
-## Технологии
+Repository: https://github.com/nyotova19/web-course-dashboard
 
-- PHP 8.3 и custom REST API
-- MariaDB 11 и PDO prepared statements
-- HTML, CSS и JavaScript SPA
-- JWT authentication
-- Nginx и PHP-FPM
-- PHPUnit
-- Docker и Docker Compose
-- GitHub Actions
-- Semgrep SAST
-- Trivy container scanning
-- Kubernetes, Kind и Kustomize
+## Приложение
+
+Проектът включва:
+
+- PHP 8.3 REST API;
+- MariaDB 11;
+- HTML, CSS и JavaScript интерфейс;
+- JWT authentication;
+- роли за студент и преподавател;
+- управление на теми, реферати, домашни работи и презентации.
+
+Локалната среда се стартира с Docker Compose, а Kubernetes вариантът използва
+две application реплики и отделен MariaDB StatefulSet.
 
 ## Архитектура
 
 ```mermaid
 flowchart LR
-    U[Потребител] --> S[Application Service]
-    S --> P1[Application Pod 1]
-    S --> P2[Application Pod 2]
-
-    P1 --> DB[MariaDB Service]
-    P2 --> DB
-    DB --> ST[MariaDB StatefulSet]
-    ST --> PVC[Persistent Volume]
-
-    CM[ConfigMap] --> P1
-    CM --> P2
-    SEC[Secret] --> P1
-    SEC --> P2
-    SEC --> ST
+    Browser --> Service[Application Service]
+    Service --> Pod1[Application Pod 1]
+    Service --> Pod2[Application Pod 2]
+    Pod1 --> DBService[MariaDB Service]
+    Pod2 --> DBService
+    DBService --> MariaDB[MariaDB StatefulSet]
+    MariaDB --> PVC[Persistent Volume]
 ```
 
-Всеки application container съдържа:
+Application image-ът съдържа Nginx, PHP-FPM, REST API и frontend файловете.
 
-- Nginx;
-- PHP-FPM;
-- PHP REST API;
-- frontend файловете.
+## Покритие на темите от курса
 
-MariaDB работи като StatefulSet с persistent storage.
+В проекта са приложени следните теми от курса:
 
-## CI/CD pipeline
+| Тема от условието | Реализация в проекта |
+|---|---|
+| Phases of SDLC | Issue, feature branch, проверка, Pull Request и release |
+| Collaborate | GitHub Issues и Pull Requests |
+| Source control | Git и GitHub |
+| Branching strategies | `main`, `develop`, `feature/*` и `fix/*` |
+| Building Pipelines | GitHub Actions workflow |
+| Continuous Integration | validation, PHPUnit, Composer Audit и Semgrep |
+| Continuous Delivery | Docker build, Trivy scan и deployment в Kind |
+| Security | JWT, prepared statements, Composer Audit, Semgrep и Trivy |
+| Docker | Dockerfile и Docker Compose |
+| Kubernetes | Deployment, StatefulSet, Services, probes и rolling update |
+| Infrastructure as code | workflow, Compose, Kubernetes YAML и Kustomize |
+| Database changes | versioned SQL schema и seed файлове |
 
-Pipeline-ът се намира в `.github/workflows/ci.yml`.
 
-```mermaid
-flowchart LR
-    A[Git push / Pull Request] --> B[Validate PHP]
-    A --> C[PHPUnit]
-    A --> D[Semgrep SAST]
+## Software delivery процес
 
-    B --> E[Docker build]
-    C --> E
-    D --> E
-
-    E --> F[Trivy scan]
-    F --> G[Kind cluster]
-    G --> H[Kubernetes deploy]
-    H --> I[Rolling rollout]
-    I --> J[Health smoke test]
+```text
+Issue
+  -> feature branch
+  -> local check
+  -> push
+  -> Continuous Integration
+  -> PHPUnit and security checks
+  -> Docker image build
+  -> Trivy scan
+  -> Deploy to Kubernetes
+  -> smoke test
+  -> Pull Request
 ```
 
-| Етап | Предназначение |
-|------|----------------|
-| Composer validation | Проверява PHP dependency конфигурацията |
-| PHP syntax check | Открива синтактични грешки |
-| Composer audit | Проверява dependencies за известни уязвимости |
-| PHPUnit | Изпълнява автоматизираните unit тестове |
-| Semgrep | Извършва SAST анализ на PHP кода |
-| Docker build | Създава application image |
-| Trivy | Блокира HIGH и CRITICAL container уязвимости |
-| Kind deployment | Deploy-ва приложението във временен Kubernetes cluster |
-| Smoke test | Проверява `/api/health` след deployment |
+Workflow файлът е:
 
-## Branching стратегия
+```text
+.github/workflows/ci.yml
+```
 
-- `main` — стабилна версия;
-- `develop` — интеграционен клон;
-- `feature/*` — разработка на нови функционалности;
-- `fix/*` — поправки.
+Pipeline-ът се стартира при push към `main`, `develop`, `feature/**` и
+`fix/**`, както и при Pull Request към `main` или `develop`.
 
-Промените се разработват във feature branch и се добавят в `develop` чрез
-Pull Request след успешен pipeline.
+## Continuous Integration
+
+| Job | Проверки |
+|---|---|
+| Validate and scan PHP | Composer validation, PHP syntax, Composer Audit и Docker Compose validation |
+| Run unit tests | PHPUnit |
+| SAST with Semgrep | Статичен анализ на PHP кода |
+| Build and scan Docker image | Docker build и Trivy scan |
+| Deploy to Kubernetes test cluster | Kind, Kustomize, rollout и health smoke test |
+
+Следващ job се изпълнява само ако зависимите от него проверки са успешни.
+
+## Branching strategies
+
+- `main` — версията за предаване;
+- `develop` — интеграционен branch;
+- `feature/*` — нова функционалност;
+- `fix/*` — поправка.
+
+Промените се правят във feature branch и се сливат чрез Pull Request след
+успешен pipeline.
 
 ## Стартиране с Docker Compose
 
-### Изисквания
-
-- Docker Desktop;
-- Docker Compose v2;
-- свободни портове `8080` и `3306`.
-
-### Конфигурация
+Необходими са Docker Desktop и Docker Compose v2.
 
 ```powershell
 Copy-Item .env.example .env
-```
-
-Промени поне `JWT_SECRET` в `.env` с дълга случайна стойност.
-
-### Стартиране
-
-```powershell
 docker compose up -d --build
 docker compose ps
 ```
 
-| URL | Описание |
-|-----|----------|
-| http://localhost:8080 | Web Course Dashboard |
-| http://localhost:8080/api/health | REST API health endpoint |
+Преди стартиране промени `JWT_SECRET` в локалния `.env`.
+
+Адреси:
+
+| URL | Предназначение |
+|---|---|
+| http://localhost:8080 | Приложение |
+| http://localhost:8080/api/health | API health check |
 | `localhost:3306` | MariaDB |
 
 Спиране:
@@ -126,16 +127,6 @@ docker compose ps
 docker compose down
 ```
 
-## Тестови акаунти
-
-| Email | Парола | Роля |
-|-------|--------|------|
-| `student@uni.bg` | `student123` | Студент |
-| `teacher@uni.bg` | `teacher123` | Преподавател |
-
-Тестовите данни се зареждат от `mariadb-init/02-seed.sql` при първото
-стартиране върху празен database volume.
-
 ## Автоматизирани тестове
 
 ```powershell
@@ -143,37 +134,19 @@ docker compose exec php composer test
 docker compose exec php composer audit
 ```
 
-Очакван резултат:
+Текущият тестов пакет съдържа 4 теста и 10 assertions.
 
-```text
-OK (4 tests, 10 assertions)
-No security vulnerability advisories found.
-```
+## Стартиране в Kubernetes
 
-## Локално стартиране в Kubernetes
-
-### Изисквания
-
-- Docker Desktop;
-- активиран Kubernetes;
-- `kubectl`.
-
-Изгради application image:
+Необходими са Docker Desktop, активиран Kubernetes и `kubectl`.
 
 ```powershell
 docker build -t web-course-dashboard:k8s ./backend
-```
-
-Създай локален Secret:
-
-```powershell
 Copy-Item k8s\secret.example.yaml k8s\secret.yaml
 ```
 
-Замени всички `CHANGE_ME` стойности в `k8s/secret.yaml`. Реалният файл е
-включен в `.gitignore` и не трябва да се commit-ва.
-
-Deploy:
+Замени стойностите `CHANGE_ME` в `k8s/secret.yaml`. Файлът е в `.gitignore`
+и не трябва да се добавя в repository-то.
 
 ```powershell
 kubectl apply -f k8s\namespace.yaml
@@ -185,91 +158,49 @@ kubectl -n web-course rollout status deployment/web-course-dashboard
 kubectl -n web-course get pods,service,pvc
 ```
 
-Достъп:
+Достъп до приложението:
 
 ```powershell
 kubectl -n web-course port-forward service/web-course-dashboard 8081:80
 ```
 
-| URL | Описание |
-|-----|----------|
-| http://localhost:8081 | Kubernetes deployment |
-| http://localhost:8081/api/health | Kubernetes health endpoint |
+Отвори:
 
-## Horizontal scaling
+```text
+http://localhost:8081
+```
 
-Deployment manifest-ът декларира две application реплики.
+## Scaling и rolling update
 
-Временно мащабиране до три:
+Deployment-ът декларира две application реплики.
 
 ```powershell
 kubectl -n web-course scale deployment/web-course-dashboard --replicas=3
-kubectl -n web-course rollout status deployment/web-course-dashboard
 kubectl -n web-course get pods
-```
-
-Връщане до две:
-
-```powershell
 kubectl -n web-course scale deployment/web-course-dashboard --replicas=2
 ```
 
-## Rolling update и rollback
+Rolling update настройката е:
+
+```yaml
+maxUnavailable: 0
+maxSurge: 1
+```
+
+Rollback:
 
 ```powershell
-kubectl -n web-course rollout status deployment/web-course-dashboard
-kubectl -n web-course rollout history deployment/web-course-dashboard
 kubectl -n web-course rollout undo deployment/web-course-dashboard
 ```
 
-## Структура на проекта
+## Тестови акаунти
 
-```text
-web-course-dashboard/
-├── .github/workflows/ci.yml     # GitHub Actions pipeline
-├── backend/                     # PHP API, Dockerfile и PHPUnit тестове
-├── frontend/                    # HTML, CSS и JavaScript SPA
-├── docker/                      # Nginx конфигурация за Docker Compose
-├── k8s/                         # Kubernetes manifests
-├── mariadb-init/                # Database schema и seed данни
-├── docs/                        # Подробна проектна документация
-├── docker-compose.yml
-├── kustomization.yaml
-└── README.md
-```
+| Email | Парола | Роля |
+|---|---|---|
+| `student@uni.bg` | `student123` | Студент |
+| `teacher@uni.bg` | `teacher123` | Преподавател |
 
-## Сигурност
+## Документация
 
-- bcrypt password hashing;
-- JWT authentication;
-- role-based authorization;
-- PDO prepared statements;
-- Composer dependency audit;
-- Semgrep SAST;
-- Trivy Docker image scanning;
-- Kubernetes Secrets;
-- readiness, liveness и startup probes;
-- container resource requests и limits;
-- `.env` и `k8s/secret.yaml` са изключени от Git.
-
-## Покрити DevOps теми
-
-Проектът покрива повече от изискваните седем теми:
-
-1. Software Development Lifecycle;
-2. source control;
-3. branching strategies;
-4. build pipelines;
-5. Continuous Integration;
-6. Continuous Delivery;
-7. automated testing;
-8. security scanning;
-9. Docker;
-10. Kubernetes;
-11. Infrastructure as Code;
-12. databases и persistent storage.
-
-## Допълнителна документация
-
-- [API документация](docs/API.md)
-- [DevOps архитектура и pipeline](docs/DEVOPS.md)
+- [API reference](docs/API.md)
+- [DevOps процес и SAST deep dive](docs/DEVOPS.md)

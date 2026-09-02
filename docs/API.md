@@ -1,6 +1,6 @@
-# Web Course Dashboard — API документация
+# API
 
-## Base URL
+## Адреси
 
 При Docker Compose:
 
@@ -43,7 +43,7 @@ Authorization: Bearer <token>
 }
 ```
 
-## Authentication
+## Вход и регистрация
 
 | Метод | Endpoint | Описание | Authentication |
 |-------|----------|----------|----------------|
@@ -88,8 +88,8 @@ Authorization: Bearer <token>
 
 | Метод | Endpoint | Роля |
 |-------|----------|------|
-| GET | `/api/topics` | authenticated |
-| GET | `/api/topics/{id}` | authenticated |
+| GET | `/api/topics` | student / teacher |
+| GET | `/api/topics/{id}` | student / teacher |
 | POST | `/api/topics` | teacher |
 | PUT | `/api/topics/{id}` | teacher |
 | DELETE | `/api/topics/{id}` | teacher |
@@ -171,7 +171,7 @@ suggested
 
 | Метод | Endpoint | Роля |
 |-------|----------|------|
-| GET | `/api/presentations/sessions` | authenticated |
+| GET | `/api/presentations/sessions` | student / teacher |
 | POST | `/api/presentations/sessions` | teacher |
 | POST | `/api/presentations/sessions/{id}/slots` | teacher |
 | DELETE | `/api/presentations/sessions/{id}` | teacher |
@@ -198,17 +198,17 @@ done
 absent
 ```
 
-## HTTP status codes
+## HTTP статуси
 
 | Код | Значение |
 |-----|----------|
 | 200 | Успешна заявка |
 | 201 | Успешно създаден ресурс |
-| 204 | Успешно изтриване без response body |
 | 400 | Невалидна заявка |
 | 401 | Липсващ или невалиден JWT |
 | 403 | Недостатъчни права |
 | 404 | Ресурсът не е намерен |
+| 409 | Конфликт със съществуващи данни |
 | 422 | Липсващо или невалидно поле |
 | 500 | Вътрешна server грешка |
 

@@ -1,458 +1,320 @@
-# DevOps архитектура и автоматизиран delivery процес
+# DevOps процес
 
-## 1. Цел
+Web Course Dashboard използва автоматизиран процес от създаването на промяна
+до проверката ѝ в Kubernetes. Основната конфигурация е в
+`.github/workflows/ci.yml`.
 
-Целта на проекта е да реализира цялостен автоматизиран software delivery
-процес — от промяна в source кода до проверен deployment в Kubernetes.
+## Phases of SDLC
 
-Процесът обхваща:
-
-1. source control;
-2. branching strategy;
-3. automated testing;
-4. Continuous Integration;
-5. security scanning;
-6. Docker image build;
-7. container vulnerability scanning;
-8. Infrastructure as Code;
-9. Kubernetes deployment;
-10. rolling updates;
-11. persistent database storage;
-12. health smoke testing.
-
-## 2. High-level архитектура
-
-```mermaid
-flowchart TB
-    DEV[Developer] -->|git push| GH[GitHub Repository]
-    GH --> GA[GitHub Actions]
-
-    GA --> V[Validation]
-    GA --> T[Unit Tests]
-    GA --> S[Semgrep SAST]
-
-    V --> B[Docker Build]
-    T --> B
-    S --> B
-
-    B --> TR[Trivy Scan]
-    TR --> K[Kind Kubernetes Cluster]
-    K --> D[Kustomize Deploy]
-    D --> SM[Health Smoke Test]
-```
-
-Pipeline-ът блокира следващите етапи при неуспешен задължителен job.
-
-## 3. Application архитектура
-
-Application image-ът съдържа:
-
-- Nginx на порт 80;
-- PHP-FPM;
-- custom PHP REST API;
-- Composer production dependencies;
-- frontend static файловете.
-
-Това позволява една application реплика да бъде самостоятелна и да се
-мащабира хоризонтално без споделена filesystem директория.
-
-```mermaid
-flowchart LR
-    U[Browser] --> S[Application Service]
-    S --> P1[Application Pod 1]
-    S --> P2[Application Pod 2]
-
-    P1 --> M[MariaDB Service]
-    P2 --> M
-    M --> DB[MariaDB StatefulSet]
-    DB --> PVC[PersistentVolumeClaim]
-```
-
-## 4. Source control и branching
-
-Използван е GitHub repository със следните клонове:
-
-| Branch | Предназначение |
-|--------|----------------|
-| `main` | Стабилна версия |
-| `develop` | Интеграционна версия |
-| `feature/*` | Разработка на нова функционалност |
-| `fix/*` | Поправка на дефект |
-
-Работният процес е:
+Работата по проекта е разделена на отделни задачи. Всяка по-голяма промяна се
+разработва във feature branch, проверява се локално и след това се изпраща в
+GitHub.
 
 ```text
 Issue
-  ↓
-feature branch
-  ↓
-local validation
-  ↓
-push
-  ↓
-GitHub Actions
-  ↓
-Pull Request към develop
-  ↓
-review и merge
+  -> feature branch
+  -> разработка
+  -> тестове
+  -> push
+  -> GitHub Actions
+  -> Pull Request
+  -> merge
 ```
 
-Feature branches, използвани при разработката:
+След успешните проверки промените се сливат в `develop`. Завършената версия се
+слива в `main` и е маркирана с tag `v1.0.0`.
 
-- `feature/devops-setup`;
-- `feature/github-actions`;
-- `feature/automated-tests`;
-- `feature/security-scanning`;
-- `feature/kubernetes-deployment`;
-- `feature/documentation`.
+## Collaborate
 
-## 5. Continuous Integration
+GitHub Issues се използват за описване на задачите, а Pull Requests — за
+преглед и сливане на промените. Във всеки Pull Request се виждат както
+променените файлове, така и резултатът от GitHub Actions.
 
-Workflow файл:
+## Source control
+
+Кодът и конфигурацията се съхраняват в GitHub:
 
 ```text
-.github/workflows/ci.yml
+https://github.com/nyotova19/web-course-dashboard
 ```
 
-Pipeline-ът се изпълнява при:
+Repository-то съдържа приложението, тестовете, pipeline конфигурацията,
+Docker файловете, Kubernetes manifests, SQL файловете и документацията.
+
+Локалните `.env` и `k8s/secret.yaml` са изключени чрез `.gitignore`.
+
+## Branching strategies
+
+Използвани са следните branches:
+
+- `main` — завършената версия;
+- `develop` — общ branch за интеграция;
+- `feature/*` — разработка на нова част;
+- `fix/*` — поправка.
+
+По време на проекта са използвани:
+
+```text
+feature/github-actions
+feature/automated-tests
+feature/security-scanning
+feature/kubernetes-deployment
+feature/documentation
+```
+
+Така всяка част от DevOps процеса е разработена и проверена отделно.
+
+## Building Pipelines
+
+GitHub Actions workflow-ът се стартира при:
 
 - push към `main`;
 - push към `develop`;
 - push към `feature/**`;
 - push към `fix/**`;
 - Pull Request към `main` или `develop`;
-- ръчно стартиране чрез `workflow_dispatch`.
+- ръчно стартиране с `workflow_dispatch`.
 
-### 5.1 Validate and scan PHP
+Jobs са свързани в следния ред:
 
-Изпълнява:
+```text
+validate ─┐
+test ─────┼─> Docker build and Trivy scan ─> Kubernetes deployment
+sast ─────┘
+```
+
+Docker image се изгражда, след като validation, PHPUnit и Semgrep приключат
+успешно.
+
+## Continuous Integration
+
+### Validate and scan PHP
+
+Първият job изпълнява:
 
 ```text
 composer validate
 composer install
 php -l
 composer audit
-docker compose config
+docker compose config --quiet
 ```
 
-Причини:
+Така се проверяват Composer конфигурацията, PHP синтаксисът, използваните
+dependencies и Docker Compose файлът.
 
-- проверява `composer.json` и `composer.lock`;
-- открива PHP syntax грешки;
-- открива известни dependency уязвимости;
-- валидира Docker Compose конфигурацията.
+### Run unit tests
 
-### 5.2 Run unit tests
-
-Изпълнява PHPUnit тестовете:
+PHPUnit изпълнява тестовете от:
 
 ```text
 backend/tests/RouterTest.php
 backend/tests/JwtTest.php
 ```
 
-Текущ резултат:
+Тестовете проверяват router логиката и работата с JWT. Текущият резултат е:
 
 ```text
-4 tests
-10 assertions
+4 tests, 10 assertions
 ```
 
-### 5.3 SAST with Semgrep
+### SAST with Semgrep
 
-Semgrep анализира:
+Semgrep анализира PHP файловете в:
 
 ```text
 backend/src
 backend/public
 ```
 
-Използва автоматично избрани PHP security правила и връща неуспешен exit code
-при blocking finding.
+Използваната команда е:
 
-### 5.4 Build and scan Docker image
+```text
+semgrep scan --config auto --error backend/src backend/public
+```
 
-След успешни validation, tests и SAST:
+При security finding job-ът приключва с грешка и Docker build не се стартира.
+
+## Continuous Delivery
+
+След успешните CI проверки pipeline-ът:
 
 1. изгражда application Docker image;
-2. стартира Trivy;
-3. проверява OS и library vulnerabilities;
-4. блокира pipeline-а при fixable `HIGH` или `CRITICAL` проблем.
+2. сканира image-а с Trivy;
+3. създава Kind Kubernetes cluster;
+4. зарежда application image-а в cluster-а;
+5. валидира Kubernetes конфигурацията;
+6. създава временни Secrets;
+7. прилага Kustomize конфигурацията;
+8. изчаква MariaDB StatefulSet и application Deployment;
+9. извиква `/api/health`.
 
-### 5.5 Deploy to Kubernetes test cluster
+Deployment job-ът проверява, че изграденото приложение може да бъде стартирано
+с Kubernetes конфигурацията от repository-то.
 
-След успешен build и Trivy scan:
+## Security
 
-1. създава временен Kind cluster;
-2. изгражда application image;
-3. зарежда image-а в Kind;
-4. валидира Kustomize manifests;
-5. генерира временни случайни secrets;
-6. deploy-ва MariaDB и приложението;
-7. изчаква StatefulSet и Deployment rollout;
-8. изпълнява health smoke test.
+В проекта са използвани няколко проверки:
 
-Kind cluster-ът съществува само по време на job-а и се използва като
-предварително конфигурирана integration среда.
+- Composer Audit за PHP dependencies;
+- Semgrep за статичен анализ на PHP кода;
+- Trivy за Docker image;
+- JWT за authentication;
+- bcrypt за паролите;
+- роли за студент и преподавател;
+- PDO prepared statements за SQL заявките;
+- Kubernetes Secret за чувствителните настройки.
 
-## 6. Security deep dive
+### SAST deep dive
 
-### 6.1 Dependency vulnerability
+При първото изпълнение Semgrep откри проблем в pagination заявката в
+`ReportsController.php`. Стойностите за `LIMIT` и `OFFSET` участваха в
+създаването на SQL текста.
 
-`composer audit` първоначално откри уязвима версия на:
-
-```text
-firebase/php-jwt
-```
-
-Dependency версията беше обновена до patched release и `composer.lock` беше
-commit-нат, за да се гарантират повторяеми builds.
-
-Резултат:
-
-```text
-No security vulnerability advisories found.
-```
-
-### 6.2 Semgrep findings
-
-Semgrep откри две blocking находки около динамично създаваната заявка за
-pagination в `ReportsController.php`.
-
-Анализът показа:
-
-1. една неточна `tainted-callable` находка върху PDO `prepare`, която беше
-   прегледана и документирана с rule-specific `nosemgrep`;
-2. една реална находка за ръчно конкатенирани `LIMIT` и `OFFSET`.
-
-Първоначалната заявка добавяше integer стойностите към SQL текста.
-
-Корекцията използва placeholders:
+Заявката беше променена да използва placeholders:
 
 ```sql
 LIMIT ? OFFSET ?
 ```
 
-Стойностите се подават като:
+Стойностите се подават отделно като цели числа:
 
 ```php
-PDO::PARAM_INT
+$stmt->bindValue($position, $value, PDO::PARAM_INT);
 ```
 
-Така security gate-ът доведе до реална code remediation, а не до изключване на
-целия scanner.
+По този начин query параметрите се обработват като стойности, а не като част
+от SQL заявката.
 
-### 6.3 Trivy policy
+Semgrep отчете и `tainted-callable` finding при PDO `prepare()`. Data flow-ът
+беше проверен и за конкретното правило е добавен rule-specific `nosemgrep`.
+Останалите Semgrep правила продължават да се изпълняват.
 
-Trivy проверява:
+След поправката SAST job-ът премина успешно, без да бъде изключван scanner-ът.
+
+### Dependency scanning
+
+Composer Audit откри advisory за използваната версия на `firebase/php-jwt`.
+Пакетът беше обновен, а актуалната версия беше записана в `composer.lock`.
+
+### Container scanning
+
+След Docker build Trivy проверява operating system и library пакетите за
+`HIGH` и `CRITICAL` уязвимости.
 
 ```text
 vulnerability types: os, library
 severity: HIGH, CRITICAL
-ignore unfixed: true
-exit code on finding: 1
+exit code: 1
 ```
 
-Това означава, че pipeline-ът блокира само сериозни проблеми с налична
-корекция.
+При такава находка Kubernetes deployment не се стартира.
 
-### 6.4 Secret management
+### Secrets
 
-Не се commit-ват:
-
-```text
-.env
-k8s/secret.yaml
-```
-
-В Git присъстват само:
+В repository-то има само примерни конфигурации:
 
 ```text
 .env.example
 k8s/secret.example.yaml
 ```
 
-В CI secrets се генерират временно чрез `openssl rand` и се унищожават заедно
-с Kind cluster-а.
+При локално стартиране се създават `.env` и `k8s/secret.yaml`. В GitHub
+Actions database паролите и JWT secret се генерират с `openssl rand`.
 
-## 7. Docker
+## Docker
 
-### Docker Compose
+Docker Compose стартира:
 
-Локалната development среда съдържа:
+- PHP-FPM;
+- Nginx;
+- MariaDB.
 
-- PHP service;
-- Nginx service;
-- MariaDB service;
-- named MariaDB volume;
-- отделна Docker network.
+Nginx обслужва frontend файловете и изпраща `/api` заявките към PHP-FPM.
+MariaDB използва named volume за данните.
 
-MariaDB изпълнява автоматично:
+`backend/Dockerfile` създава application image, който съдържа:
 
-```text
-mariadb-init/01-schema.sql
-mariadb-init/02-seed.sql
+- PHP 8.3;
+- PHP-FPM;
+- Nginx;
+- Supervisor;
+- REST API;
+- frontend файловете;
+- Composer dependencies.
+
+## Kubernetes
+
+Kubernetes ресурсите са в `k8s/` и се прилагат чрез `kustomization.yaml`.
+
+Използвани са:
+
+- namespace `web-course`;
+- ConfigMap;
+- Secret;
+- MariaDB StatefulSet;
+- PersistentVolumeClaim;
+- application Deployment;
+- два ClusterIP Services;
+- startup, readiness и liveness probes;
+- resource requests и limits.
+
+Application Deployment стартира две реплики.
+
+```yaml
+replicas: 2
 ```
 
-SQL файловете се изпълняват само при празен database volume.
-
-### Application image
-
-`backend/Dockerfile`:
-
-1. използва PHP 8.3 Alpine base image;
-2. инсталира системните dependencies;
-3. инсталира PDO MySQL и необходимите PHP extensions;
-4. инсталира Composer dependencies;
-5. копира backend и frontend;
-6. стартира Nginx и PHP-FPM чрез Supervisor.
-
-## 8. Kubernetes Infrastructure as Code
-
-### Namespace
-
-Всички ресурси се изолират в:
-
-```text
-web-course
-```
-
-### ConfigMap
-
-Съдържа несекретни настройки:
-
-- environment;
-- database host;
-- database port;
-- database name;
-- application base path.
-
-### Secret
-
-Съдържа:
-
-- MariaDB user;
-- MariaDB password;
-- MariaDB root password;
-- JWT secret.
-
-### MariaDB StatefulSet
-
-Използва StatefulSet, защото базата данни има state и стабилна идентичност.
-
-Конфигурация:
-
-- една реплика;
-- headless Service;
-- readiness probe;
-- liveness probe;
-- resource requests и limits;
-- `1Gi` PersistentVolumeClaim;
-- init SQL ConfigMap.
-
-### Application Deployment
-
-Конфигурация:
-
-- две реплики;
-- ClusterIP Service;
-- startup probe;
-- readiness probe;
-- liveness probe;
-- CPU и memory requests;
-- CPU и memory limits;
-- rolling update strategy.
-
-Rolling update:
+Rolling update конфигурацията е:
 
 ```yaml
 maxUnavailable: 0
 maxSurge: 1
 ```
 
-При deployment Kubernetes стартира нов pod, изчаква readiness probe и едва
-след това спира стара реплика.
+При update Kubernetes стартира нов pod и изчаква readiness probe, преди да
+спре старата реплика.
 
-## 9. Horizontal scaling
-
-Тестът за мащабиране увеличава application репликите:
-
-```text
-2 → 3
-```
-
-По време на scaling Service продължава да насочва заявките към ready pod-овете.
-
-След демонстрацията броят се връща до декларираните две реплики.
-
-## 10. Database persistence
-
-MariaDB използва PersistentVolumeClaim:
-
-```text
-mariadb-data-mariadb-0
-```
-
-Данните остават налични при:
-
-- рестартиране на pod;
-- пресъздаване на StatefulSet pod;
-- rolling update на application Deployment.
-
-Изтриването на PVC е destructive операция и води до загуба на локалните данни.
-
-## 11. Observability и health checks
-
-Application endpoint:
-
-```text
-GET /api/health
-```
-
-Използва се за:
-
-- startup probe;
-- readiness probe;
-- liveness probe;
-- CI smoke test.
-
-MariaDB използва:
-
-```text
-healthcheck.sh --connect --innodb_initialized
-```
-
-## 12. Failure handling
-
-Pipeline-ът е fail-fast:
-
-- syntax проблем спира validation;
-- неуспешен тест спира build;
-- SAST finding спира build;
-- Trivy finding спира deployment;
-- неуспешен rollout спира smoke test;
-- неуспешен health endpoint маркира pipeline-а като failed.
-
-Kubernetes rollback:
+Приложението може да бъде мащабирано с:
 
 ```powershell
-kubectl -n web-course rollout undo deployment/web-course-dashboard
+kubectl -n web-course scale deployment/web-course-dashboard --replicas=3
 ```
 
-## 13. Ограничения и бъдещи подобрения
+## Infrastructure as code
 
-Текущият CI Kubernetes cluster е временен и не е production среда.
+Конфигурацията на средата е част от repository-то:
 
-Възможни подобрения:
+| Файл | Съдържание |
+|---|---|
+| `.github/workflows/ci.yml` | GitHub Actions pipeline |
+| `backend/Dockerfile` | Application image |
+| `docker-compose.yml` | Локална среда |
+| `k8s/*.yaml` | Kubernetes ресурси |
+| `kustomization.yaml` | Общо Kubernetes deployment описание |
+| `mariadb-init/*.sql` | Database структура и начални данни |
 
-- публикуване на versioned images в GitHub Container Registry;
-- deployment в managed public cloud Kubernetes;
-- Ingress и TLS;
-- HorizontalPodAutoscaler;
-- Prometheus и Grafana;
-- централизирани logs;
-- database backups;
-- NetworkPolicy;
-- non-root application container;
-- pinned GitHub Action commit SHA стойности;
-- integration и end-to-end tests.
+Docker и Kubernetes средите се създават от тези файлове.
+
+## Database changes
+
+Database структурата и тестовите данни са разделени в два файла:
+
+```text
+mariadb-init/01-schema.sql
+mariadb-init/02-seed.sql
+```
+
+`01-schema.sql` създава таблиците. `02-seed.sql` добавя потребители и примерни
+данни за теми, домашни работи, реферати и презентации.
+
+Файловете се изпълняват по име при първото стартиране на MariaDB върху празен
+volume.
+
+## T-shaped / E-shaped solution
+
+Хоризонталната част обхваща целия път на промяната:
+
+```text
+Git -> CI -> tests -> security scanning -> Docker -> Kubernetes
+```
