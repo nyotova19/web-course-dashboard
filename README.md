@@ -64,9 +64,7 @@ Source control
 → Kubernetes
 ```
 
-Вертикалната тема е SAST анализът със Semgrep. При него автоматична проверка
-откри проблем в SQL заявка, pipeline-ът беше спрян, кодът беше поправен и
-проверката беше изпълнена отново.
+Вертикалната тема е SAST анализът със Semgrep.
 
 ## Source control и Branching strategies
 
