@@ -397,8 +397,7 @@ kubectl -n web-course rollout status deployment/web-course-dashboard
 kubectl -n web-course get pods
 ```
 
-По време на scaling и rolling restart приложението остава достъпно през
-Kubernetes Service.
+По време на rolling restart приложението остава достъпно през Kubernetes Service.
 
 ## Документация
 
