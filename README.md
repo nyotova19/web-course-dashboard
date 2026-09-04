@@ -1,13 +1,6 @@
 # Web Course Dashboard
 
-Финален DevOps проект за автоматизиран software delivery процес — от промяна
-в Git до проверен deployment в Kubernetes.
-
-GitHub repository:
-
-```text
-https://github.com/nyotova19/web-course-dashboard
-```
+DevOps проект за автоматизиран software delivery процес.
 
 Приложението е система за управление на университетски курс. Използва PHP
 8.3, MariaDB и JavaScript. Основната част на проекта е автоматизирането на
