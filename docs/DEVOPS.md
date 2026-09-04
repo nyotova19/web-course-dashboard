@@ -311,7 +311,7 @@ mariadb-init/02-seed.sql
 Файловете се изпълняват по име при първото стартиране на MariaDB върху празен
 volume.
 
-## T-shaped / E-shaped solution
+## T-shaped 
 
 Хоризонталната част обхваща целия път на промяната:
 
