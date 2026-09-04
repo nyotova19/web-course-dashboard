@@ -174,8 +174,6 @@ semgrep scan --config auto --error backend/src backend/public
 
 ## Dependency и container scanning
 
-## Dependency и container scanning
-
 Composer Audit проверява PHP зависимостите за известни уязвимости.
 
 След създаването на Docker image-а Trivy проверява неговите пакети и библиотеки. Ако бъде открита сериозна уязвимост, pipeline-ът спира и Kubernetes deployment не започва.
