@@ -161,11 +161,6 @@ backend/tests/JwtTest.php
 
 Тестовете проверяват Router и JWT логиката.
 
-Текущ резултат:
-
-```text
-4 tests, 10 assertions
-```
 
 ### SAST with Semgrep
 
