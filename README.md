@@ -174,21 +174,11 @@ semgrep scan --config auto --error backend/src backend/public
 
 ## Dependency и container scanning
 
-Composer Audit проверява PHP dependencies за известни уязвимости.
+## Dependency и container scanning
 
-При разработката беше открит advisory за използвана версия на
-`firebase/php-jwt`. Dependency-то беше обновено и актуалната версия беше
-записана в `composer.lock`.
+Composer Audit проверява PHP зависимостите за известни уязвимости.
 
-След Docker build Trivy проверява application image-а:
-
-```text
-vulnerability types: os, library
-severity: HIGH, CRITICAL
-exit code: 1
-```
-
-При такава находка Kubernetes deployment не започва.
+След създаването на Docker image-а Trivy проверява неговите пакети и библиотеки. Ако бъде открита сериозна уязвимост, pipeline-ът спира и Kubernetes deployment не започва.
 
 ## Docker
 
