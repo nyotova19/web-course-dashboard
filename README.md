@@ -15,9 +15,12 @@ https://github.com/nyotova19/web-course-dashboard
 
 ## Цел на проекта
 
-Процесът започва от Git repository и преминава през:
+Целта на проекта е да покаже цялостен автоматизиран процес за проверка, изграждане и разгръщане на уеб приложение.
 
-```text
+При всяка промяна кодът се тества и проверява за проблеми със сигурността. След това се изгражда Docker image и приложението се тества в Kubernetes среда.
+
+Процесът е:
+
 Git
 → validation
 → unit tests
@@ -26,7 +29,6 @@ Git
 → vulnerability scan
 → Kubernetes deployment
 → health check
-```
 
 ## Използвани теми
 
