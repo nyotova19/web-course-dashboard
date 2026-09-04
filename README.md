@@ -389,20 +389,6 @@ http://localhost:8081
 kubectl -n web-course get pods,service,pvc
 ```
 
-Scaling от две на три реплики:
-
-```powershell
-kubectl -n web-course scale deployment/web-course-dashboard --replicas=3
-kubectl -n web-course rollout status deployment/web-course-dashboard
-kubectl -n web-course get pods
-```
-
-Връщане до две реплики:
-
-```powershell
-kubectl -n web-course scale deployment/web-course-dashboard --replicas=2
-```
-
 Rolling restart:
 
 ```powershell
