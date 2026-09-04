@@ -172,33 +172,6 @@ semgrep scan --config auto --error backend/src backend/public
 
 Опцията `--error` спира pipeline-а при security finding.
 
-## Security deep dive
-
-При първото изпълнение Semgrep откри проблем в pagination заявката в
-`ReportsController.php`.
-
-Стойностите за `LIMIT` и `OFFSET` участваха в създаването на SQL текста.
-Заявката беше променена да използва placeholders:
-
-```sql
-LIMIT ? OFFSET ?
-```
-
-Стойностите се подават отделно като цели числа:
-
-```php
-$stmt->bindValue($position, $value, PDO::PARAM_INT);
-```
-
-Така query параметрите не се добавят директно в SQL текста.
-
-Semgrep отчете и `tainted-callable` finding върху PDO `prepare()`. След
-проверка на data flow-а находката беше определена като false positive. За нея
-е добавено изключение само за конкретното правило.
-
-Semgrep остава активен за останалия код и продължава да бъде blocking проверка
-в pipeline-а.
-
 ## Dependency и container scanning
 
 Composer Audit проверява PHP dependencies за известни уязвимости.
