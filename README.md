@@ -271,21 +271,6 @@ Kubernetes конфигурацията включва:
 - startup, readiness и liveness probes;
 - resource requests и limits.
 
-Application Deployment използва две реплики:
-
-```yaml
-replicas: 2
-```
-
-Rolling update стратегията е:
-
-```yaml
-maxUnavailable: 0
-maxSurge: 1
-```
-
-Kubernetes стартира нов pod и изчаква той да бъде готов, преди да спре стария.
-
 ## Infrastructure as code
 
 Конфигурацията е част от Git repository-то:
