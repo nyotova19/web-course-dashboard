@@ -124,7 +124,7 @@ class DashboardController extends BaseController
             'grade'            => $grade,
             'reports'          => ['total' => $totalReports, 'submitted' => $submittedReports, 'graded' => $gradedReports],
             'homework'         => ['total' => $totalHw, 'done' => $doneSubs, 'points' => $points, 'max_points' => $maxPts],
-            'next_presentation'=> $nextSlot,
+            'next_presentation' => $nextSlot,
             'upcoming'         => array_slice($upcoming, 0, 6),
             'topics_progress'  => $topicsProgress,
         ]);

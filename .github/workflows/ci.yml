@@ -25,6 +25,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Lint GitHub Actions workflow
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -44,12 +49,39 @@ jobs:
       - name: Check PHP syntax
         run: find backend/src backend/public backend/tests -name "*.php" -print0 | xargs -0 -n1 php -l
 
+      - name: Check PHP code style
+        working-directory: backend
+        run: composer style
+
+      - name: Run PHPStan static analysis
+        working-directory: backend
+        run: composer lint
+
       - name: Audit PHP dependencies
         working-directory: backend
         run: composer audit
 
       - name: Validate Docker Compose
         run: docker compose config --quiet
+
+      - name: Start MariaDB test container
+        run: docker compose up --detach --wait mariadb
+
+      - name: Verify database schema and seed data
+        shell: bash
+        run: |
+          TABLE_COUNT="$(docker compose exec -T mariadb mariadb -N -uwebuser -pwebpass webcourse -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'webcourse';")"
+          USER_COUNT="$(docker compose exec -T mariadb mariadb -N -uwebuser -pwebpass webcourse -e "SELECT COUNT(*) FROM users;")"
+
+          echo "Tables: $TABLE_COUNT"
+          echo "Users: $USER_COUNT"
+
+          test "$TABLE_COUNT" -eq 7
+          test "$USER_COUNT" -eq 2
+
+      - name: Stop MariaDB test container
+        if: always()
+        run: docker compose down --volumes
 
   test:
     name: Run unit tests
@@ -99,6 +131,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.4.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: error
+
       - name: Build application image
         run: docker build --tag web-course-dashboard:${{ github.sha }} ./backend
       - name: Scan Docker image with Trivy
@@ -120,6 +158,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+
       - name: Create Kind Kubernetes cluster
         uses: helm/kind-action@v1.14.0
         with:
@@ -134,6 +173,9 @@ jobs:
 
       - name: Validate Kubernetes manifests
         run: kubectl kustomize . | kubectl apply --dry-run=client -f -
+
+      - name: Validate Kubernetes schemas with Kubeconform
+        run: kubectl kustomize . | docker run --rm -i ghcr.io/yannh/kubeconform:v0.7.0 -strict -summary -ignore-missing-schemas
 
       - name: Create ephemeral Kubernetes secrets
         shell: bash
@@ -171,7 +213,7 @@ jobs:
           PORT_FORWARD_PID=$!
           trap 'kill "$PORT_FORWARD_PID" 2>/dev/null || true' EXIT
 
-          for attempt in {1..30}; do
+          for _ in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8081/api/health \
               | grep --quiet '"status":"ok"'; then
               echo "Kubernetes smoke test passed."

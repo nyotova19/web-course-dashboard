@@ -27,7 +27,9 @@ class Router
         $uri = strtok($uri, '?');
 
         foreach ($this->routes as $route) {
-            if ($route['method'] !== strtoupper($method)) continue;
+            if ($route['method'] !== strtoupper($method)) {
+                continue;
+            }
 
             if (preg_match($route['pattern'], $uri, $matches)) {
                 $params = [];

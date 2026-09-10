@@ -23,7 +23,9 @@ class HomeworkController extends BaseController
         }
 
         $sql = 'SELECT * FROM homework';
-        if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
         $sql .= ' ORDER BY number ASC';
 
         $stmt = $this->db()->prepare($sql);
@@ -90,10 +92,22 @@ class HomeworkController extends BaseController
 
         $set  = [];
         $args = [];
-        if (isset($body['title']))       { $set[] = 'title = ?';       $args[] = trim($body['title']); }
-        if (isset($body['description'])) { $set[] = 'description = ?'; $args[] = $body['description']; }
-        if (isset($body['max_points']))  { $set[] = 'max_points = ?';  $args[] = (int) $body['max_points']; }
-        if (isset($body['deadline']))    { $set[] = 'deadline = ?';    $args[] = date('Y-m-d H:i:s', strtotime($body['deadline'])); }
+        if (isset($body['title'])) {
+            $set[] = 'title = ?';
+            $args[] = trim($body['title']);
+        }
+        if (isset($body['description'])) {
+            $set[] = 'description = ?';
+            $args[] = $body['description'];
+        }
+        if (isset($body['max_points'])) {
+            $set[] = 'max_points = ?';
+            $args[] = (int) $body['max_points'];
+        }
+        if (isset($body['deadline'])) {
+            $set[] = 'deadline = ?';
+            $args[] = date('Y-m-d H:i:s', strtotime($body['deadline']));
+        }
         if (isset($body['tags'])) {
             $tags = array_map(fn($t) => '#' . ltrim(strtolower($t), '#'), $body['tags']);
             $set[]  = 'tags = ?';
