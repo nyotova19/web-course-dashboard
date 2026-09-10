@@ -31,7 +31,9 @@ class TopicsController extends BaseController
         }
 
         $sql = 'SELECT * FROM topics';
-        if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
         $sql .= ' ORDER BY number ASC';
 
         $stmt = $this->db()->prepare($sql);
@@ -100,9 +102,18 @@ class TopicsController extends BaseController
 
         $set  = [];
         $args = [];
-        if (isset($body['title']))       { $set[] = 'title = ?';       $args[] = trim($body['title']); }
-        if (isset($body['description'])) { $set[] = 'description = ?'; $args[] = trim($body['description']); }
-        if (isset($body['status']))      { $set[] = 'status = ?';      $args[] = $body['status']; }
+        if (isset($body['title'])) {
+            $set[] = 'title = ?';
+            $args[] = trim($body['title']);
+        }
+        if (isset($body['description'])) {
+            $set[] = 'description = ?';
+            $args[] = trim($body['description']);
+        }
+        if (isset($body['status'])) {
+            $set[] = 'status = ?';
+            $args[] = $body['status'];
+        }
         if (isset($body['tags'])) {
             $set[]  = 'tags = ?';
             $args[] = json_encode(array_map('strtolower', $body['tags']), JSON_UNESCAPED_UNICODE);

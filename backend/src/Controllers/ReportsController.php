@@ -69,7 +69,7 @@ class ReportsController extends BaseController
             'data'       => $this->shapeMany($stmt->fetchAll(), self::JSON_COLS),
             'total'      => $total,
             'page'       => $page,
-            'totalPages' => $limit > 0 ? (int) ceil($total / $limit) : 0,
+            'totalPages' => (int) ceil($total / $limit),
         ]);
     }
 
@@ -164,7 +164,10 @@ class ReportsController extends BaseController
 
         $set  = [];
         $args = [];
-        if (isset($body['title']))     { $set[] = 'title = ?';  $args[] = trim($body['title']); }
+        if (isset($body['title'])) {
+            $set[] = 'title = ?';
+            $args[] = trim($body['title']);
+        }
         if (isset($body['keywords'])) {
             $keywords = array_map(function ($kw) {
                 $kw = trim(strtolower($kw));
@@ -173,10 +176,22 @@ class ReportsController extends BaseController
             $set[]  = 'keywords = ?';
             $args[] = json_encode($keywords, JSON_UNESCAPED_UNICODE);
         }
-        if (isset($body['resources'])) { $set[] = 'resources = ?'; $args[] = json_encode($body['resources'], JSON_UNESCAPED_UNICODE); }
-        if (isset($body['notes']))     { $set[] = 'notes = ?';     $args[] = $body['notes']; }
-        if (isset($body['status']))    { $set[] = 'status = ?';    $args[] = $body['status']; }
-        if (isset($body['deadline']))  { $set[] = 'deadline = ?';  $args[] = date('Y-m-d H:i:s', strtotime($body['deadline'])); }
+        if (isset($body['resources'])) {
+            $set[] = 'resources = ?';
+            $args[] = json_encode($body['resources'], JSON_UNESCAPED_UNICODE);
+        }
+        if (isset($body['notes'])) {
+            $set[] = 'notes = ?';
+            $args[] = $body['notes'];
+        }
+        if (isset($body['status'])) {
+            $set[] = 'status = ?';
+            $args[] = $body['status'];
+        }
+        if (isset($body['deadline'])) {
+            $set[] = 'deadline = ?';
+            $args[] = date('Y-m-d H:i:s', strtotime($body['deadline']));
+        }
 
         // Only teachers can set grade
         if ($payload['role'] === 'teacher' && isset($body['grade'])) {

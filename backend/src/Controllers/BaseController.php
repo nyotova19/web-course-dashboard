@@ -39,7 +39,9 @@ abstract class BaseController
     // Returns [] for a missing row (matches the old docToArray(null)).
     protected function shape(mixed $row, array $jsonCols = []): array
     {
-        if (!$row) return [];
+        if (!$row) {
+            return [];
+        }
 
         // Primary key -> string _id
         if (array_key_exists('id', $row)) {

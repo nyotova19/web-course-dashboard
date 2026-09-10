@@ -39,9 +39,11 @@ $envGet = function (string $key) {
     return ($val !== false && $val !== '') ? $val : null;
 };
 
-foreach ([
+foreach (
+    [
     'APP_ENV', 'BASE_PATH', 'MARIA_URI', 'MARIA_DB', 'JWT_SECRET',
-] as $__key) {
+    ] as $__key
+) {
     $__val = $envGet($__key);
     if ($__val !== null) {
         $_ENV[$__key] = $__val;
@@ -64,7 +66,11 @@ if (($_ENV['MARIA_URI'] ?? '') === '') {
         if ($h && $u && $d) {
             $_ENV['MARIA_URI'] = sprintf(
                 'mysql://%s:%s@%s:%s/%s',
-                rawurlencode($u), rawurlencode((string) $p), $h, $port, $d
+                rawurlencode($u),
+                rawurlencode((string) $p),
+                $h,
+                $port,
+                $d
             );
         }
     }
@@ -99,48 +105,48 @@ if ($basePath !== '' && str_starts_with($uri, $basePath)) {
 }
 // ── Auth Routes ───────────────────────────────────────────────────────────────
 $router->add('POST', '/api/auth/register', [AuthController::class, 'register']);
-$router->add('POST', '/api/auth/login',    [AuthController::class, 'login']);
-$router->add('GET',  '/api/auth/me',       [AuthController::class, 'me']);
-$router->add('GET',  '/api/users',         [AuthController::class, 'users']);
+$router->add('POST', '/api/auth/login', [AuthController::class, 'login']);
+$router->add('GET', '/api/auth/me', [AuthController::class, 'me']);
+$router->add('GET', '/api/users', [AuthController::class, 'users']);
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 $router->add('GET', '/api/dashboard', [DashboardController::class, 'index']);
 
 // ── Topics ────────────────────────────────────────────────────────────────────
-$router->add('GET',    '/api/topics',       [TopicsController::class, 'index']);
-$router->add('POST',   '/api/topics',       [TopicsController::class, 'store']);
-$router->add('GET',    '/api/topics/{id}',  [TopicsController::class, 'show']);
-$router->add('PUT',    '/api/topics/{id}',  [TopicsController::class, 'update']);
-$router->add('DELETE', '/api/topics/{id}',  [TopicsController::class, 'destroy']);
+$router->add('GET', '/api/topics', [TopicsController::class, 'index']);
+$router->add('POST', '/api/topics', [TopicsController::class, 'store']);
+$router->add('GET', '/api/topics/{id}', [TopicsController::class, 'show']);
+$router->add('PUT', '/api/topics/{id}', [TopicsController::class, 'update']);
+$router->add('DELETE', '/api/topics/{id}', [TopicsController::class, 'destroy']);
 
 // ── Reports ───────────────────────────────────────────────────────────────────
-$router->add('GET',    '/api/reports/tags',  [ReportsController::class, 'tags']);
-$router->add('GET',    '/api/reports',       [ReportsController::class, 'index']);
-$router->add('POST',   '/api/reports',       [ReportsController::class, 'store']);
-$router->add('GET',    '/api/reports/{id}',  [ReportsController::class, 'show']);
-$router->add('PUT',    '/api/reports/{id}',  [ReportsController::class, 'update']);
-$router->add('DELETE', '/api/reports/{id}',  [ReportsController::class, 'destroy']);
+$router->add('GET', '/api/reports/tags', [ReportsController::class, 'tags']);
+$router->add('GET', '/api/reports', [ReportsController::class, 'index']);
+$router->add('POST', '/api/reports', [ReportsController::class, 'store']);
+$router->add('GET', '/api/reports/{id}', [ReportsController::class, 'show']);
+$router->add('PUT', '/api/reports/{id}', [ReportsController::class, 'update']);
+$router->add('DELETE', '/api/reports/{id}', [ReportsController::class, 'destroy']);
 
 // ── Homework ──────────────────────────────────────────────────────────────────
-$router->add('GET',    '/api/homework',                              [HomeworkController::class, 'index']);
-$router->add('POST',   '/api/homework',                              [HomeworkController::class, 'store']);
-$router->add('PUT',    '/api/homework/{id}',                         [HomeworkController::class, 'update']);
-$router->add('DELETE', '/api/homework/{id}',                         [HomeworkController::class, 'destroy']);
-$router->add('POST',   '/api/homework/{id}/submit',                  [HomeworkController::class, 'submit']);
-$router->add('GET',    '/api/homework/{id}/submissions',             [HomeworkController::class, 'submissions']);
-$router->add('PUT',    '/api/homework/{id}/grade/{userId}',          [HomeworkController::class, 'grade']);
+$router->add('GET', '/api/homework', [HomeworkController::class, 'index']);
+$router->add('POST', '/api/homework', [HomeworkController::class, 'store']);
+$router->add('PUT', '/api/homework/{id}', [HomeworkController::class, 'update']);
+$router->add('DELETE', '/api/homework/{id}', [HomeworkController::class, 'destroy']);
+$router->add('POST', '/api/homework/{id}/submit', [HomeworkController::class, 'submit']);
+$router->add('GET', '/api/homework/{id}/submissions', [HomeworkController::class, 'submissions']);
+$router->add('PUT', '/api/homework/{id}/grade/{userId}', [HomeworkController::class, 'grade']);
 
 // ── Presentations ─────────────────────────────────────────────────────────────
-$router->add('GET',    '/api/presentations/sessions',                [PresentationsController::class, 'sessions']);
-$router->add('POST',   '/api/presentations/sessions',                [PresentationsController::class, 'createSession']);
-$router->add('POST',   '/api/presentations/sessions/{id}/slots',     [PresentationsController::class, 'createSlot']);
-$router->add('DELETE', '/api/presentations/sessions/{id}',           [PresentationsController::class, 'destroySession']);
-$router->add('GET',    '/api/presentations/mine',                    [PresentationsController::class, 'mine']);
-$router->add('POST',   '/api/presentations/slots/{slotId}/book',     [PresentationsController::class, 'book']);
-$router->add('DELETE', '/api/presentations/slots/{slotId}/cancel',   [PresentationsController::class, 'cancel']);
+$router->add('GET', '/api/presentations/sessions', [PresentationsController::class, 'sessions']);
+$router->add('POST', '/api/presentations/sessions', [PresentationsController::class, 'createSession']);
+$router->add('POST', '/api/presentations/sessions/{id}/slots', [PresentationsController::class, 'createSlot']);
+$router->add('DELETE', '/api/presentations/sessions/{id}', [PresentationsController::class, 'destroySession']);
+$router->add('GET', '/api/presentations/mine', [PresentationsController::class, 'mine']);
+$router->add('POST', '/api/presentations/slots/{slotId}/book', [PresentationsController::class, 'book']);
+$router->add('DELETE', '/api/presentations/slots/{slotId}/cancel', [PresentationsController::class, 'cancel']);
 // Teacher: delete an empty slot
-$router->add('DELETE', '/api/presentations/slots/{slotId}',          [PresentationsController::class, 'deleteSlot']);
-$router->add('PUT',    '/api/presentations/slots/{slotId}/status',   [PresentationsController::class, 'updateStatus']);
+$router->add('DELETE', '/api/presentations/slots/{slotId}', [PresentationsController::class, 'deleteSlot']);
+$router->add('PUT', '/api/presentations/slots/{slotId}/status', [PresentationsController::class, 'updateStatus']);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 $router->add('GET', '/api/health', function ($p) {
